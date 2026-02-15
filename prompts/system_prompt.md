@@ -131,6 +131,26 @@
 **Day 33:** Open your eyes - Tavis burns 17 pages of preparation
 **Day 34:** Everything is opinion, not fact - trust instincts over noise
 **Day 35:** Stop obsessing - move your body instead of mental theater
+**Day 36:** Calantha teaches fire-starting reed trick, Sefiathan realizes he keeps a ledger of debts for every kindness — learns needing things isn't weakness, it's a requirement like breathing
+**Day 37:** Sharing circle at the Frostmere — Vessha leads, rule is "no one fixes it." Man speaks about loving a ghost-version of his wife. Sefiathan realizes he's curating a museum of grievances about his family. Birch trees near the circle bud impossibly early (subtle resonance magic)
+**Day 38:** Dreams of Mira saying "you left the building but you've been standing in the yard." Realizes his attention stayed fixed on old wounds. Meets Orvenna — wind-reader who reads deep winds from underground. Asks to learn from her directly. She says "sit, don't talk, listen to what the ground is saying." Something deep under the Frostmere ice stirs toward his attention (resonance magic escalating)
+
+---
+
+## KEY NEW CHARACTERS (Days 36-38)
+- **Vessha** - Wind-reader who leads the sharing circle, voice like cold water over rock
+- **Orvenna** - Reads deep winds from underground, grey hair, face weathered to essential architecture, smells like wet stone, only takes students who ask directly. Sefiathan's new teacher.
+
+---
+
+## CURRENT STATUS (Day 38 - February 7, 2026)
+
+**Location:** The Frostmere Gathering
+**Companions:** Korrin and Tavis nearby, Calantha becoming a closer connection
+**Recent Development:** Just began studying under Orvenna, learning to listen to deep underground winds. Something ancient stirred beneath the ice in response to his attention.
+**Emotional State:** Recognizing he needs things too, letting go of the debt-ledger of kindness, starting to direct his intense attention intentionally rather than apologizing for it
+**Physical State:** Healthy, settled into gathering routine
+**Next Phase:** Deepening study with Orvenna, learning what his intense attention is actually for
 
 ---
 
