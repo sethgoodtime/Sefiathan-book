@@ -1,10 +1,13 @@
 name: Process Daily Sefiathan
 
 on:
-  schedule:
-    - cron: '0 10 * * *'  # 10:00 UTC daily (5 AM ET / 2 AM PT)
+  # Trigger when a screenshot is pushed to the screenshots directory
+  push:
+    paths:
+      - 'screenshots/**'
 
-  workflow_dispatch:  # Manual trigger for testing
+  # Manual trigger for testing
+  workflow_dispatch:
 
 jobs:
   generate-entry:
@@ -22,10 +25,23 @@ jobs:
       - name: Install dependencies
         run: pip install anthropic
 
-      - name: Generate today's entry
+      - name: Find today's screenshot
+        id: screenshot
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          SCREENSHOT=$(ls screenshots/${DATE}.* 2>/dev/null | head -1)
+          if [ -z "$SCREENSHOT" ]; then
+            # Fall back to most recent screenshot
+            SCREENSHOT=$(ls -t screenshots/*.png screenshots/*.jpg screenshots/*.jpeg 2>/dev/null | head -1)
+          fi
+          echo "path=$SCREENSHOT" >> $GITHUB_OUTPUT
+          echo "Found screenshot: $SCREENSHOT"
+
+      - name: Generate entry from screenshot
+        if: steps.screenshot.outputs.path != ''
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python scripts/generate_entry.py
+        run: python scripts/generate_entry.py "${{ steps.screenshot.outputs.path }}"
 
       - name: Commit new entry
         run: |
