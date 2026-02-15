@@ -1,5 +1,8 @@
 """
-Read a Co-Star screenshot and generate a daily Sefiathan entry using Claude vision.
+Read a Co-Star screenshot and generate the next page of Sefiathan's Journey.
+
+Uses the full story bible as a system prompt, the previous day's entry for
+continuity, and the Co-Star screenshot as thematic inspiration.
 
 Usage:
     python scripts/generate_entry.py screenshots/2026-02-15.png
@@ -10,10 +13,14 @@ Environment variables required:
 
 import base64
 import sys
-from datetime import datetime, timezone
+import glob
+from datetime import datetime, timezone, date
 from pathlib import Path
 
 import anthropic
+
+# Day 1 of the story is January 2, 2026
+STORY_START = date(2026, 1, 2)
 
 
 def read_screenshot(image_path: str) -> str:
@@ -22,14 +29,45 @@ def read_screenshot(image_path: str) -> str:
         return base64.standard_b64encode(f.read()).decode("utf-8")
 
 
+def load_system_prompt() -> str:
+    """Load the story bible / system prompt."""
+    prompt_path = Path("prompts/system_prompt.md")
+    if not prompt_path.exists():
+        print("ERROR: prompts/system_prompt.md not found!")
+        sys.exit(1)
+    return prompt_path.read_text(encoding="utf-8")
+
+
+def get_previous_entries(n: int = 3) -> str:
+    """Load the last N chapter entries for continuity context."""
+    chapter_files = sorted(glob.glob("chapters/*.md"))
+    if not chapter_files:
+        return ""
+
+    recent = chapter_files[-n:]
+    entries = []
+    for filepath in recent:
+        day_date = Path(filepath).stem
+        content = Path(filepath).read_text(encoding="utf-8").strip()
+        entries.append(f"--- {day_date} ---\n{content}")
+
+    return "\n\n".join(entries)
+
+
+def get_story_day() -> int:
+    """Calculate what story day we're on based on the date."""
+    today = date.today()
+    delta = (today - STORY_START).days + 1
+    return max(1, delta)
+
+
 def generate_entry(image_path: str) -> str:
-    """Generate today's Sefiathan entry from a Co-Star screenshot via Claude vision."""
+    """Generate today's Sefiathan entry from a Co-Star screenshot."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
+    story_day = get_story_day()
 
     image_data = read_screenshot(image_path)
 
-    # Determine media type from extension
     ext = Path(image_path).suffix.lower()
     media_type = {
         ".png": "image/png",
@@ -37,11 +75,24 @@ def generate_entry(image_path: str) -> str:
         ".jpeg": "image/jpeg",
     }.get(ext, "image/png")
 
+    system_prompt = load_system_prompt()
+    previous_entries = get_previous_entries(3)
+
+    continuity_context = ""
+    if previous_entries:
+        continuity_context = (
+            f"\n\n## RECENT ENTRIES (for continuity - flow naturally from where the last entry ended)\n\n"
+            f"{previous_entries}"
+        )
+
+    full_system = system_prompt + continuity_context
+
     client = anthropic.Anthropic()
 
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=1024,
+        max_tokens=2048,
+        system=full_system,
         messages=[
             {
                 "role": "user",
@@ -57,16 +108,10 @@ def generate_entry(image_path: str) -> str:
                     {
                         "type": "text",
                         "text": (
-                            f"Today is {today} (day {day_of_year} of the year). "
-                            "This is a screenshot from the Co-Star astrology app. "
-                            "Read the horoscope content in this screenshot and transform it into "
-                            "a short, reflective Sefiathan entry — a personal horoscope-style "
-                            "passage that blends the Co-Star reading with introspection and poetic memoir. "
-                            "It should feel like a journal entry from the universe addressed to the reader. "
-                            "Weave in the specific astrological details and advice from the screenshot. "
-                            "Keep it between 100-300 words. "
-                            "Start with a bold date line, then the entry body. "
-                            "No markdown headers — just the date as a bold line, then flowing prose."
+                            f"Today is {today} — Day {story_day} of Sefiathan's journey.\n\n"
+                            "Here is today's Co-Star reading. Extract the core theme and write "
+                            "today's page. Flow naturally from where yesterday's entry ended. "
+                            "~800-1000 words. Pure prose, no formatting beyond the bold date line."
                         ),
                     },
                 ],
@@ -88,6 +133,7 @@ def main():
         sys.exit(1)
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    story_day = get_story_day()
     output_dir = Path("chapters")
     output_dir.mkdir(exist_ok=True)
 
@@ -97,11 +143,11 @@ def main():
         print(f"Entry for {today} already exists. Skipping.")
         sys.exit(0)
 
-    print(f"Generating Sefiathan entry from {image_path}...")
+    print(f"Day {story_day} — Generating Sefiathan entry from {image_path}...")
     entry = generate_entry(image_path)
 
     output_path.write_text(entry, encoding="utf-8")
-    print(f"Saved: {output_path}")
+    print(f"Saved: {output_path} ({len(entry.split())} words)")
 
 
 if __name__ == "__main__":
