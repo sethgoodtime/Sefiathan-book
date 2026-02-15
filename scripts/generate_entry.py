@@ -54,17 +54,18 @@ def get_previous_entries(n: int = 3) -> str:
     return "\n\n".join(entries)
 
 
-def get_story_day() -> int:
+def get_story_day(target_date: date | None = None) -> int:
     """Calculate what story day we're on based on the date."""
-    today = date.today()
-    delta = (today - STORY_START).days + 1
+    d = target_date or date.today()
+    delta = (d - STORY_START).days + 1
     return max(1, delta)
 
 
-def generate_entry(image_path: str) -> str:
-    """Generate today's Sefiathan entry from a Co-Star screenshot."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    story_day = get_story_day()
+def generate_entry(image_path: str, target_date: date | None = None) -> str:
+    """Generate a Sefiathan entry from a Co-Star screenshot."""
+    d = target_date or date.today()
+    today = d.strftime("%Y-%m-%d")
+    story_day = get_story_day(d)
 
     image_data = read_screenshot(image_path)
 
@@ -132,22 +133,29 @@ def main():
         print(f"Screenshot not found: {image_path}")
         sys.exit(1)
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    story_day = get_story_day()
+    # Derive the target date from the screenshot filename (e.g., 2026-02-08.jpg)
+    stem = Path(image_path).stem
+    try:
+        target_date = date.fromisoformat(stem)
+    except ValueError:
+        target_date = date.today()
+
+    date_str = target_date.strftime("%Y-%m-%d")
+    story_day = get_story_day(target_date)
     output_dir = Path("chapters")
     output_dir.mkdir(exist_ok=True)
 
-    output_path = output_dir / f"{today}.md"
+    output_path = output_dir / f"{date_str}.md"
 
     if output_path.exists():
-        print(f"Entry for {today} already exists. Skipping.")
+        print(f"Entry for {date_str} already exists. Skipping.")
         sys.exit(0)
 
     print(f"Day {story_day} — Generating Sefiathan entry from {image_path}...")
-    entry = generate_entry(image_path)
+    entry = generate_entry(image_path, target_date)
 
     output_path.write_text(entry, encoding="utf-8")
-    print(f"Saved: {output_path} ({len(entry.split())} words)")
+    print(f"Saved: {output_path} (Day {story_day}, {len(entry.split())} words)")
 
 
 if __name__ == "__main__":
