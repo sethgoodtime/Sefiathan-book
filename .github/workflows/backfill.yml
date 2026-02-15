@@ -1,0 +1,59 @@
+name: Backfill Missing Entries
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Generate missing entries sequentially
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git config --local user.email "sefiathan-bot@users.noreply.github.com"
+          git config --local user.name "Sefiathan Bot"
+
+          # Find all screenshots that don't have a matching chapter
+          for screenshot in $(ls screenshots/*.{png,jpg,jpeg} 2>/dev/null | sort); do
+            DATE=$(basename "$screenshot" | sed 's/\.[^.]*$//')
+
+            # Skip if chapter already exists
+            if [ -f "chapters/${DATE}.md" ]; then
+              echo "Chapter for ${DATE} already exists, skipping."
+              continue
+            fi
+
+            echo "============================================"
+            echo "Generating entry for ${DATE} from ${screenshot}"
+            echo "============================================"
+
+            python scripts/generate_entry.py "$screenshot"
+
+            if [ -f "chapters/${DATE}.md" ]; then
+              git add "chapters/${DATE}.md"
+              git commit -m "[bot] Backfill Sefiathan entry for ${DATE}"
+              git push
+              echo "Committed and pushed ${DATE}"
+              echo ""
+              # Brief pause between API calls
+              sleep 5
+            fi
+          done
+
+          echo "Backfill complete!"
