@@ -1,0 +1,41 @@
+name: Process Daily Sefiathan
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # 10:00 UTC daily (5 AM ET / 2 AM PT)
+
+  workflow_dispatch:  # Manual trigger for testing
+
+jobs:
+  generate-entry:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Generate today's entry
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/generate_entry.py
+
+      - name: Commit new entry
+        run: |
+          git config --local user.email "sefiathan-bot@users.noreply.github.com"
+          git config --local user.name "Sefiathan Bot"
+          git add chapters/*.md
+          if git diff --staged --quiet; then
+            echo "No new entry to commit"
+          else
+            DATE=$(date -u +%Y-%m-%d)
+            git commit -m "[bot] Add Sefiathan entry for $DATE"
+            git push
+          fi
