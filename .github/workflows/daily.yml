@@ -47,28 +47,14 @@ jobs:
         run: python scripts/generate_entry.py "${{ steps.screenshot.outputs.path }}"
 
       - name: Commit new entry
-        id: commit
         run: |
           git config --local user.email "sefiathan-bot@users.noreply.github.com"
           git config --local user.name "Sefiathan Bot"
           git add chapters/*.md
           if git diff --staged --quiet; then
             echo "No new entry to commit"
-            echo "committed=false" >> $GITHUB_OUTPUT
           else
             DATE=$(date -u +%Y-%m-%d)
             git commit -m "[bot] Add Sefiathan entry for $DATE"
             git push
-            echo "committed=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Send ntfy notification
-        if: steps.commit.outputs.committed == 'true'
-        run: |
-          DATE=$(date -u +%Y-%m-%d)
-          COUNT=$(ls chapters/*.md 2>/dev/null | grep -v gitkeep | wc -l | tr -d ' ')
-          curl -s \
-            -H "Title: Day ${COUNT} of 365" \
-            -H "Tags: star" \
-            -d "New Sefiathan entry ready for ${DATE}." \
-            https://ntfy.sh/sefiathan-book
