@@ -185,7 +185,7 @@ Sefiathan understands his "inability to inherit magic" was because this power ca
 4. **Maintain continuity** - where did yesterday end? What time of day? What's the weather?
 5. **Write organically** - let the story flow, trust the narrative
 6. **Subtle resonance magic** - small moments where his attention might be affecting things (don't make it obvious)
-7. **One page (~800-1000 words)** - complete scene/moment
+7. **One page (~1200-1500 words)** - complete scene/moment
 
 ### What NOT to Do:
 - Don't recap previous days

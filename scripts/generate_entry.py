@@ -92,7 +92,7 @@ def generate_entry(image_path: str, target_date: date | None = None) -> str:
 
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=2048,
+        max_tokens=3072,
         system=full_system,
         messages=[
             {
@@ -112,7 +112,7 @@ def generate_entry(image_path: str, target_date: date | None = None) -> str:
                             f"Today is {today} — Day {story_day} of Sefiathan's journey.\n\n"
                             "Here is today's Co-Star reading. Extract the core theme and write "
                             "today's page. Flow naturally from where yesterday's entry ended. "
-                            "~800-1000 words. Pure prose, no formatting beyond the bold date line."
+                            "~1200-1500 words. Pure prose, no formatting beyond the bold date line."
                         ),
                     },
                 ],
