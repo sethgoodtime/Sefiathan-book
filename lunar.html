@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moon Lander - Seth Edition</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #000 0%, #0a0a2a 100%);
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+            text-shadow: 2px 2px #000;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            font-weight: bold;
+        }
+        .btn:active { background: rgba(255, 255, 255, 0.5); }
+        #msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        Score: <span id="score">0</span><br>
+        Time: <span id="timer">180</span>s<br>
+        Speed: <span id="speed">0</span>
+    </div>
+
+    <div id="msg">
+        <h2 id="msg-text">CRASHED!</h2>
+        <button onclick="resetGame()">Try Again</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls">
+        <div class="btn" id="leftBtn">L</div>
+        <div class="btn" id="thrustBtn">UP</div>
+        <div class="btn" id="rightBtn">R</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const speedEl = document.getElementById('speed');
+        const msgBox = document.getElementById('msg');
+        const msgText = document.getElementById('msg-text');
+
+        let width, height, ship, terrain, pads, particles;
+        let score = 0;
+        let timeLeft = 180;
+        let gameActive = true;
+        const gravity = 0.05;
+        const keys = {};
+
+        // Mobile Controls
+        const touch = { left: false, right: false, up: false };
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            resetShip();
+            generateTerrain();
+            particles = [];
+        }
+
+        function resetShip() {
+            ship = {
+                x: 50,
+                y: 50,
+                vx: 1.5,
+                vy: 0,
+                angle: 0,
+                width: 20,
+                height: 25,
+                thrust: false
+            };
+        }
+
+        function generateTerrain() {
+            terrain = [];
+            pads = [];
+            let x = 0;
+            let y = height - 50;
+            
+            while (x < width) {
+                let segmentWidth = 40 + Math.random() * 60;
+                let isPad = Math.random() > 0.7 && x > 100;
+                
+                if (isPad) {
+                    let padWidth = 60;
+                    pads.push({ x: x, y: y, w: padWidth });
+                    terrain.push({ x: x, y: y });
+                    x += padWidth;
+                    terrain.push({ x: x, y: y });
+                } else {
+                    y = height - (20 + Math.random() * 100);
+                    terrain.push({ x: x, y: y });
+                    x += segmentWidth;
+                }
+            }
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            // Input
+            if (keys['ArrowUp'] || keys[' '] || touch.up) {
+                ship.vy -= 0.15;
+                ship.thrust = true;
+                createParticle(ship.x, ship.y + 10);
+            } else {
+                ship.thrust = false;
+            }
+            if (keys['ArrowLeft'] || touch.left) ship.vx -= 0.1;
+            if (keys['ArrowRight'] || touch.right) ship.vx += 0.1;
+
+            // Physics
+            ship.vy += gravity;
+            ship.x += ship.vx;
+            ship.y += ship.vy;
+            ship.vx *= 0.99; // Friction/Damping
+
+            // Speed display
+            let totalSpeed = Math.sqrt(ship.vx*ship.vx + ship.vy*ship.vy).toFixed(1);
+            speedEl.innerText = totalSpeed;
+
+            // Boundaries
+            if (ship.x < 0) ship.x = width;
+            if (ship.x > width) ship.x = 0;
+
+            // Collision
+            checkCollision(totalSpeed);
+            updateParticles();
+        }
+
+        function checkCollision(speed) {
+            // Check Landing Pads
+            pads.forEach(pad => {
+                if (ship.x > pad.x && ship.x < pad.x + pad.w && 
+                    ship.y + ship.height/2 >= pad.y) {
+                    
+                    if (speed < 1.5) {
+                        score += 100;
+                        scoreEl.innerText = score;
+                        alert("Safe Landing! +100");
+                        resetShip();
+                        generateTerrain();
+                    } else {
+                        gameOver("CRASHED! Too Fast.");
+                    }
+                }
+            });
+
+            // Check Ground (Simple height check)
+            if (ship.y > height - 20) {
+                gameOver("CRASHED!");
+            }
+        }
+
+        function gameOver(txt) {
+            gameActive = false;
+            msgText.innerText = txt;
+            msgBox.style.display = 'block';
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 180;
+            scoreEl.innerText = "0";
+            msgBox.style.display = 'none';
+            gameActive = true;
+            init();
+        }
+
+        function createParticle(x, y) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 2,
+                vy: Math.random() * 2 + 2,
+                life: 20
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Terrain
+            ctx.beginPath();
+            ctx.strokeStyle = '#fff';
+            ctx.moveTo(0, height);
+            terrain.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.lineTo(width, height);
+            ctx.stroke();
+
+            // Draw Pads
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 4;
+            pads.forEach(pad => {
+                ctx.beginPath();
+                ctx.moveTo(pad.x, pad.y);
+                ctx.lineTo(pad.x + pad.w, pad.y);
+                ctx.stroke();
+            });
+            ctx.lineWidth = 1;
+
+            // Draw Particles
+            ctx.fillStyle = '#ffaa00';
+            particles.forEach(p => {
+                ctx.fillRect(p.x, p.y, 2, 2);
+            });
+
+            // Draw Ship
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.fillStyle = '#ccc';
+            // Simple Triangle Pod
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(10, 10);
+            ctx.lineTo(-10, 10);
+            ctx.closePath();
+            ctx.fill();
+            if (ship.thrust) {
+                ctx.fillStyle = '#f00';
+                ctx.fillRect(-5, 10, 10, 10);
+            }
+            ctx.restore();
+
+            requestAnimationFrame(() => {
+                update();
+                draw();
+            });
+        }
+
+        // Timer
+        setInterval(() => {
+            if (gameActive && timeLeft > 0) {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) gameOver("TIME UP! Score: " + score);
+            }
+        }, 1000);
+
+        // Input Listeners
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Touch Listeners
+        const setupTouch = (id, key) => {
+            const el = document.getElementById(id);
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); touch[key] = true; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); touch[key] = false; });
+        };
+        setupTouch('leftBtn', 'left');
+        setupTouch('rightBtn', 'right');
+        setupTouch('thrustBtn', 'up');
+
+        window.addEventListener('resize', init);
+        init();
+        draw();
+    </script>
+</body>
+</html>
